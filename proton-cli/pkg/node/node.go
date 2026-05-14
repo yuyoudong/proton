@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os/user"
 	"strings"
@@ -100,6 +102,13 @@ func (n *Node) resetNode(wg *sync.WaitGroup, conf client.RemoteClientConf) {
 	if err := configuration.RemoveOldProtonCLIDirIfExist(ecms.NewForHost(conf.Host).Files()); err != nil {
 		n.Logger.Warningf("remove old proton cli dir of %v fail: %v", conf.HostName, err)
 	}
+	// 重置节点时移除内核模块持久化配置文件
+	n.Logger.Infof("removing kernel modules config of %v", conf.HostName)
+	if err := ecms.NewForHost(conf.Host).Files().Delete(context.TODO(), protonModulesLoadPath); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			n.Logger.Warningf("removing kernel modules config of %v fail: %v", conf.HostName, err)
+		}
+	}
 }
 
 func (n *Node) setNodes() error {
@@ -157,6 +166,12 @@ func (n *Node) setNode(conf client.RemoteClientConf) error {
 	n.Logger.Info(fmt.Sprintf("update node %s proton sysctl", conf.Host))
 	if err := n.UpdateProtonSysctlFile(executor, ecmsV1Alpha1.Files()); err != nil {
 		return fmt.Errorf("update remote host %s proton sysctl file failed: %w", conf.Host, err)
+	}
+
+	// 加载内核模块
+	n.Logger.Info(fmt.Sprintf("update node %s kernel modules", conf.Host))
+	if err := n.UpdateKernelModules(n.Logger, executor, ecmsV1Alpha1.Files()); err != nil {
+		return fmt.Errorf("update remote host %s kernel modules failed: %w", conf.Host, err)
 	}
 
 	// k8s 配置更新 放在slb更新前更新否则无法连接apiserver
