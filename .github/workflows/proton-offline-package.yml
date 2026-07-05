@@ -18,9 +18,9 @@ jobs:
       - name: Login to registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ vars.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: swr.cn-east-3.myhuaweicloud.com
+          username: HST3W58JIOQ0S63N1CNV
+          password: dfc7bc472e59aa6de6c1d6b70cd33d18725960c2aef1235e6a04bbdaeb2cf19a
           
       - name: Checkout
         uses: actions/checkout@v6
