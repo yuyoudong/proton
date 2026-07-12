@@ -159,7 +159,7 @@ func defaultManifest(info architectureInfo, protonCLIPath string, protonCLIVersi
 				// ociArtifact("example-package."+info.packageArch+".rpm", "registry.example.com/rpms/example-package:1.0.0-"+info.packageArch),
 				ociArtifact("containerd-2.2.2-3.proton."+info.packageArch+".rpm", "swr.cn-east-3.myhuaweicloud.com/kweaver-ai/proton/rpm/containerd:2.2.2-3.proton."+info.packageArch),
 				httpArtifact("cri-tools-1.34.0-150500.1.1."+info.packageArch+".rpm", "https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.34/rpm/"+info.packageArch+"/cri-tools-1.34.0-150500.1.1."+info.packageArch+".rpm", "", ""),
-				ociArtifact("ecms-0.2.0~alpha.0.12-42ba5f4-1.proton."+info.packageArch+".rpm", "swr.cn-east-3.myhuaweicloud.com/kweaver-ai/proton/rpm/ecms:0.2.0-alpha.0.12-42ba5f4-1.proton."+info.packageArch),
+				ociArtifact("ecms-1.1.8-120.1.el7."+info.packageArch+".rpm", "swr.cn-east-3.myhuaweicloud.com/kweaver-ai/proton/rpm/ecms:1.1.8-120.1.proton."+info.packageArch),
 				httpArtifact("haproxy-2.5.6."+info.packageArch+".rpm", "https://github.com/kweaver-ai/proton/releases/download/haproxy%2F2.5.6/haproxy-2.5.6."+info.packageArch+".rpm", "", ""),
 				httpArtifact("kubeadm-1.34.6-150500.1.1."+info.packageArch+".rpm", "https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.34/rpm/"+info.packageArch+"/kubeadm-1.34.6-150500.1.1."+info.packageArch+".rpm", "", ""),
 				httpArtifact("kubectl-1.34.6-150500.1.1."+info.packageArch+".rpm", "https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.34/rpm/"+info.packageArch+"/kubectl-1.34.6-150500.1.1."+info.packageArch+".rpm", "", ""),
