@@ -21,7 +21,7 @@ func BuildHelmValues(cfg *configuration.ClusterConfig, namespace string) map[str
 		ns = cfg.Deploy.Namespace
 	}
 	if ns == "" {
-		ns = "kweaver"
+		ns = "openbkn"
 	}
 	v["namespace"] = ns
 
@@ -168,7 +168,7 @@ func buildDepServices(r *configuration.ResourceConnectInfo) map[string]any {
 		}
 		// database 默认值，charts 通常期望此字段存在
 		if _, ok := rds["database"]; !ok {
-			rds["database"] = "kweaver"
+			rds["database"] = "openbkn"
 		}
 		dep["rds"] = rds
 	}

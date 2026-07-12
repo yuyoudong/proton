@@ -70,9 +70,38 @@ func detectNodeContainerRuntimes(n *k.Node) (runtimes []nodeContainerRuntime, er
 func generateContainerRuntimeSourceInto(r nodeContainerRuntime, target *configuration.ContainerRuntimeSource, localCR *configuration.LocalCR, containerdRoot string) {
 	switch r {
 	case nodeContainerRuntimeContainerd:
-		target.Containerd = generateContainerdContainerRuntimeSource(localCR, containerdRoot)
+		// 如果 target.Containerd 已存在，则补充缺失的字段；否则创建新的
+		if target.Containerd == nil {
+			target.Containerd = generateContainerdContainerRuntimeSource(localCR, containerdRoot)
+		} else {
+			fillContainerdContainerRuntimeSource(target.Containerd, localCR)
+		}
 	default:
 		return
+	}
+}
+
+// fillContainerdContainerRuntimeSource 补充 containerd 配置中缺失的字段
+func fillContainerdContainerRuntimeSource(target *configuration.ContainerdContainerRuntimeSource, localCR *configuration.LocalCR) {
+	if localCR == nil {
+		return
+	}
+
+	// 补充缺失的 SandboxImage
+	if target.SandboxImage == "" {
+		target.SandboxImage = fmt.Sprintf("%s/pause:3.10.1", net.JoinHostPort(global.RegistryDomain, strconv.Itoa(localCR.Ha_ports.Registry)))
+	}
+
+	// 补充缺失的 Registries
+	if len(target.Registries) == 0 {
+		var hosts []string
+		hosts = append(hosts, net.JoinHostPort(global.RegistryDomain, strconv.Itoa(localCR.Ha_ports.Registry)))
+		for _, h := range localCR.Hosts {
+			hosts = append(hosts, net.JoinHostPort(h, strconv.Itoa(localCR.Ports.Registry)))
+		}
+		for _, h := range hosts {
+			target.Registries = append(target.Registries, generateContainerdRegistryHostConfig(h))
+		}
 	}
 }
 
@@ -105,11 +134,12 @@ func generateContainerdRegistryHostConfig(host string) configuration.RegistryHos
 		Scheme: "http",
 		Host:   host,
 	}
+	skipVerify := true
 	return configuration.RegistryHostConfig{
 		Server: s.String(),
 		HostConfigs: map[string]configuration.RegistryHostFileConfig{
 			host: {
-				SkipVerify: new(true),
+				SkipVerify: &skipVerify,
 			},
 		},
 	}

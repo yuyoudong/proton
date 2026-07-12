@@ -195,15 +195,19 @@ func helmValuesForAddon(name configuration.CSAddonName, registry string, addonsC
 		httpPort, httpsPort := ingressNginxPorts(addonsConfig)
 		v.Global.Image.Registry = registry
 		v.Controller.Image.Image = "ingress-nginx-controller"
-		v.Controller.ContainerPort.HTTP = new(httpPort)
-		v.Controller.ContainerPort.HTTPS = new(httpsPort)
+		v.Controller.ContainerPort.HTTP = &httpPort
+		v.Controller.ContainerPort.HTTPS = &httpsPort
 		v.Controller.Kind = "DaemonSet"
-		v.Controller.HostNetwork = new(true)
+		hostNetwork := true
+		v.Controller.HostNetwork = &hostNetwork
 		v.Controller.IngressClass = "class-443"
-		v.Controller.Service.Enabled = new(false)
+		serviceEnabled := false
+		v.Controller.Service.Enabled = &serviceEnabled
 		v.Controller.IngressClassResource.Name = "class-443"
-		v.Controller.IngressClassResource.Default = new(true)
-		v.Controller.AdmissionWebhooks.Port = new(9443)
+		defaultClass := true
+		v.Controller.IngressClassResource.Default = &defaultClass
+		port := 9443
+		v.Controller.AdmissionWebhooks.Port = &port
 		v.Controller.AdmissionWebhooks.Patch.Image.Image = "ingress-nginx-kube-webhook-certgen"
 		values = v
 	default:

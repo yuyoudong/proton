@@ -191,8 +191,8 @@ func validateAppManifest(manifest *appManifest) error {
 		return fmt.Errorf("manifest product is required")
 	case manifest.Version == "":
 		return fmt.Errorf("manifest version is required")
-	case manifest.Source.HelmRepoURL == "":
-		return fmt.Errorf("manifest source.helmRepoUrl is required")
+	case manifest.Source.RepoURL() == "":
+		return fmt.Errorf("manifest source.helmRepoUrl or source.registry is required")
 	case len(manifest.Releases) == 0:
 		return fmt.Errorf("manifest releases must not be empty")
 	}
@@ -223,7 +223,7 @@ func collectAppChartRequests(documents []appManifestDocument) []appChartArtifact
 
 		for _, releaseName := range releases {
 			release := document.Manifest.Releases[releaseName]
-			key := strings.Join([]string{document.Manifest.Source.HelmRepoURL, release.Chart, release.Version}, "\x00")
+			key := strings.Join([]string{document.Manifest.Source.RepoURL(), release.Chart, release.Version}, "\x00")
 			if _, ok := seen[key]; ok {
 				continue
 			}
@@ -238,7 +238,7 @@ func collectAppChartRequests(documents []appManifestDocument) []appChartArtifact
 			charts = append(charts, appChartArtifact{
 				Name:    release.Chart,
 				Version: release.Version,
-				RepoURL: document.Manifest.Source.HelmRepoURL,
+				RepoURL: document.Manifest.Source.RepoURL(),
 				Path:    filename,
 			})
 		}

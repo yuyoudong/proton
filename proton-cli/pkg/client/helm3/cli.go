@@ -62,12 +62,15 @@ func (c *helmv3) NameSpace(ns string) Client {
 	if c.namespace == ns {
 		return c
 	}
+	// 创建新的 settings 并设置 namespace，确保 Helm 所有操作使用正确的 namespace
+	newSettings := helmcli.New()
+	newSettings.SetNamespace(ns)
 	nsActionConfig := new(action.Configuration)
-	_ = nsActionConfig.Init(c.settings.RESTClientGetter(), ns, "", c.log.Debugf)
+	_ = nsActionConfig.Init(newSettings.RESTClientGetter(), ns, "", c.log.Debugf)
 	// helmDriver 为 sql 时才有可能出现错误
 	return &helmv3{
 		actionConfig: nsActionConfig,
-		settings:     c.settings,
+		settings:     newSettings,
 		namespace:    ns,
 		log:          c.log,
 	}

@@ -25,6 +25,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	helmregistry "helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/repo"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/oci"
@@ -179,36 +180,78 @@ func downloadAppCharts(ctx context.Context, charts []appChartArtifact, chartsDir
 	indexFiles := map[string]*repo.IndexFile{}
 	out := make([]appChartArtifact, 0, len(charts))
 	for _, chart := range charts {
-		indexFile, err := loadChartRepositoryIndex(chart.RepoURL, indexFiles)
-		if err != nil {
-			return nil, err
-		}
+		// 判断是否为 OCI registry
+		if isOCIURL(chart.RepoURL) {
+			// 使用 OCI 方式下载 chart
+			log.Printf("downloading OCI chart %s-%s from %s", chart.Name, chart.Version, chart.RepoURL)
+			targetPath := filepath.Join(chartsDir, chart.Path)
+			if err := downloadOCIChart(ctx, chart.RepoURL, chart.Name, chart.Version, targetPath); err != nil {
+				return nil, fmt.Errorf("download OCI chart %s-%s: %w", chart.Name, chart.Version, err)
+			}
+			chart.URL = fmt.Sprintf("%s/%s:%s", chart.RepoURL, chart.Name, chart.Version)
+			chart.Path = targetPath
+			out = append(out, chart)
+		} else {
+			// 使用传统 Helm repo 方式下载 chart
+			indexFile, err := loadChartRepositoryIndex(chart.RepoURL, indexFiles)
+			if err != nil {
+				return nil, err
+			}
 
-		cv, err := indexFile.Get(chart.Name, chart.Version)
-		if err != nil {
-			return nil, fmt.Errorf("find chart %s-%s in repo %s index: %w", chart.Name, chart.Version, chart.RepoURL, err)
-		}
-		if len(cv.URLs) == 0 {
-			return nil, fmt.Errorf("chart %s-%s has no downloadable URL", chart.Name, chart.Version)
-		}
+			cv, err := indexFile.Get(chart.Name, chart.Version)
+			if err != nil {
+				return nil, fmt.Errorf("find chart %s-%s in repo %s index: %w", chart.Name, chart.Version, chart.RepoURL, err)
+			}
+			if len(cv.URLs) == 0 {
+				return nil, fmt.Errorf("chart %s-%s has no downloadable URL", chart.Name, chart.Version)
+			}
 
-		resolved, err := resolveChartURL(chart.RepoURL, cv.URLs[0])
-		if err != nil {
-			return nil, fmt.Errorf("resolve chart %s-%s URL: %w", chart.Name, chart.Version, err)
-		}
+			resolved, err := resolveChartURL(chart.RepoURL, cv.URLs[0])
+			if err != nil {
+				return nil, fmt.Errorf("resolve chart %s-%s URL: %w", chart.Name, chart.Version, err)
+			}
 
-		log.Printf("downloading chart %s-%s", chart.Name, chart.Version)
-		targetPath := filepath.Join(chartsDir, chart.Path)
-		if err := downloadFile(ctx, resolved, targetPath); err != nil {
-			return nil, fmt.Errorf("download chart %s-%s: %w", chart.Name, chart.Version, err)
-		}
+			log.Printf("downloading chart %s-%s", chart.Name, chart.Version)
+			targetPath := filepath.Join(chartsDir, chart.Path)
+			if err := downloadFile(ctx, resolved, targetPath); err != nil {
+				return nil, fmt.Errorf("download chart %s-%s: %w", chart.Name, chart.Version, err)
+			}
 
-		chart.URL = resolved
-		chart.Path = targetPath
-		out = append(out, chart)
+			chart.URL = resolved
+			chart.Path = targetPath
+			out = append(out, chart)
+		}
 	}
 
 	return out, nil
+}
+
+// isOCIURL 判断 URL 是否为 OCI registry 格式
+func isOCIURL(url string) bool {
+	return strings.HasPrefix(url, "oci://")
+}
+
+// downloadOCIChart 从 OCI registry 下载 Helm chart
+func downloadOCIChart(ctx context.Context, repoURL, chartName, chartVersion, targetPath string) error {
+	// 构建 OCI reference: oci://registry/path/chart:version
+	// 移除 oci:// 前缀，构建完整的 reference
+	registryRef := strings.TrimPrefix(repoURL, "oci://")
+	chartRef := fmt.Sprintf("%s/%s:%s", registryRef, chartName, chartVersion)
+
+	// 使用 Helm registry client 拉取 chart
+	client, err := helmregistry.NewClient()
+	if err != nil {
+		return fmt.Errorf("create Helm registry client: %w", err)
+	}
+
+	// 拉取 chart
+	result, err := client.Pull(chartRef)
+	if err != nil {
+		return fmt.Errorf("pull OCI chart %s: %w", chartRef, err)
+	}
+
+	// 写入目标文件
+	return os.WriteFile(targetPath, result.Chart.Data, 0o644)
 }
 
 func loadChartRepositoryIndex(repoURL string, cache map[string]*repo.IndexFile) (*repo.IndexFile, error) {

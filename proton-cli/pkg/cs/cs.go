@@ -185,6 +185,11 @@ func (c *Cs) apply() error {
 
 	// 更新流程
 	if c.OldClusterConf != nil && len(c.OldClusterConf.Nodes) != 0 {
+		// 补充容器运行时配置中缺失的字段
+		if c.ClusterConf.Cs.ContainerRuntime.Containerd != nil {
+			fillContainerdContainerRuntimeSource(c.ClusterConf.Cs.ContainerRuntime.Containerd, c.ClusterConf.Cr.Local)
+		}
+
 		kube, err := NewKubernetesClient()
 		if err != nil {
 			return fmt.Errorf("unable to create kubernetes client: %w", err)
@@ -235,11 +240,11 @@ func (c *Cs) apply() error {
 	}
 
 	kc := &k.KubernetesCluster{
-		Logger:      c.Logger,
-		BIP:         c.ClusterConf.Cs.Host_network.Bip,
-		ETCDDataDir: c.ClusterConf.Cs.Etcd_data_dir,
+		Logger:       c.Logger,
+		BIP:          c.ClusterConf.Cs.Host_network.Bip,
+		ETCDDataDir:  c.ClusterConf.Cs.Etcd_data_dir,
 		LoadBalancer: fmt.Sprintf("proton-cs.lb.aishu.cn:%d", c.ClusterConf.Cs.Ha_port),
-		ChartRepo:   chartRepo,
+		ChartRepo:    chartRepo,
 		// 容器运行时
 		ContainerRuntime: &c.ClusterConf.Cs.ContainerRuntime,
 	}
@@ -261,19 +266,18 @@ func (c *Cs) apply() error {
 		kc.Masters = append(kc.Masters, *master)
 	}
 
-	// 探查节点的容器运行时
-	if !isSpecifiedContainerRuntimeSource(&c.ClusterConf.Cs.ContainerRuntime) {
-		c.Logger.Info("detect node common container runtime")
-		r, err := detectNodeCommonContainerRuntime(kc)
-		if err != nil {
-			return err
-		}
-		var containerdRoot string
-		if c.ClusterConf.Cs.ContainerRuntime.Containerd != nil {
-			containerdRoot = c.ClusterConf.Cs.ContainerRuntime.Containerd.Root
-		}
-		generateContainerRuntimeSourceInto(r, &c.ClusterConf.Cs.ContainerRuntime, c.ClusterConf.Cr.Local, containerdRoot)
+	// 探查节点的容器运行时，并补充缺失的配置字段
+	c.Logger.Info("detect node common container runtime")
+	r, err := detectNodeCommonContainerRuntime(kc)
+	if err != nil {
+		return err
 	}
+	var containerdRoot string
+	if c.ClusterConf.Cs.ContainerRuntime.Containerd != nil {
+		containerdRoot = c.ClusterConf.Cs.ContainerRuntime.Containerd.Root
+	}
+	// generateContainerRuntimeSourceInto 会补充缺失的字段（如 sandbox_image 和 registries）
+	generateContainerRuntimeSourceInto(r, &c.ClusterConf.Cs.ContainerRuntime, c.ClusterConf.Cr.Local, containerdRoot)
 	c.Logger.WithField("container-runtime", c.ClusterConf.Cs.ContainerRuntime)
 
 	for cidr := range strings.SplitSeq(c.ClusterConf.Cs.Host_network.Pod_network_cidr, ",") {
@@ -312,7 +316,7 @@ func (c *Cs) apply() error {
 		return err
 	}
 
-	err := c.initCs()
+	err = c.initCs()
 
 	c.Logger.Info("init proton cs end")
 

@@ -18,7 +18,7 @@ func CompletePackageStore(c *configuration.PackageStore) {
 
 func CompleteBaredPackageStore(c *configuration.PackageStore) {
 	if c.Replicas == nil {
-		c.Replicas = new(len(c.Hosts))
+		c.Replicas = ptr.To(len(c.Hosts))
 	}
 	if c.Storage.Capacity == nil {
 		c.Storage.Capacity = resource.NewQuantity(store.DefaultStorageCapacity, resource.BinarySI)

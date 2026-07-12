@@ -15,8 +15,25 @@ type appManifest struct {
 }
 
 type appManifestSource struct {
-	HelmRepoName string `json:"helmRepoName,omitempty"`
-	HelmRepoURL  string `json:"helmRepoUrl,omitempty"`
+	Type         string `json:"type,omitempty"`         // "oci" or empty for traditional helm repo
+	Registry     string `json:"registry,omitempty"`     // OCI registry URL (used when type is "oci")
+	HelmRepoName string `json:"helmRepoName,omitempty"` // Helm repository name (for traditional helm repo)
+	HelmRepoURL  string `json:"helmRepoUrl,omitempty"`  // Helm repository URL (for traditional helm repo)
+}
+
+// RepoURL returns the repository URL for the source.
+// For OCI sources, it returns the registry URL.
+// For traditional Helm repos, it returns the HelmRepoURL.
+func (s *appManifestSource) RepoURL() string {
+	if s.Type == "oci" {
+		return s.Registry
+	}
+	return s.HelmRepoURL
+}
+
+// IsOCI returns true if the source is an OCI registry.
+func (s *appManifestSource) IsOCI() bool {
+	return s.Type == "oci"
 }
 
 type appManifestDependency struct {

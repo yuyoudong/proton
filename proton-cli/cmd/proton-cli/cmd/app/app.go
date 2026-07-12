@@ -82,7 +82,7 @@ Examples:
 	}
 
 	cmd.Flags().StringVarP(&f.manifestFile, "file", "f", "", "path to VersionSet manifest YAML (required)")
-	cmd.Flags().StringVarP(&f.namespace, "namespace", "n", "kweaver", "target Kubernetes namespace")
+	cmd.Flags().StringVarP(&f.namespace, "namespace", "n", "openbkn", "target Kubernetes namespace")
 	cmd.Flags().StringVar(&f.timeout, "timeout", f.timeout, "per-release install timeout (e.g. 30m, 1h)")
 	cmd.Flags().BoolVar(&f.dryRun, "dry-run", false, "print install plan without executing")
 	cmd.Flags().BoolVar(&f.createNamespace, "create-namespace", f.createNamespace, "create namespace if it does not exist")
@@ -549,7 +549,7 @@ Uninstall order is reversed: current product first, then dependencies.`,
 	}
 
 	cmd.Flags().StringVarP(&f.manifestFile, "file", "f", "", "Path to VersionSet manifest file (required)")
-	cmd.Flags().StringVarP(&f.namespace, "namespace", "n", "kweaver", "Kubernetes namespace")
+	cmd.Flags().StringVarP(&f.namespace, "namespace", "n", "openbkn", "Kubernetes namespace")
 	cmd.Flags().StringVar(&f.timeout, "timeout", "5m", "per-release uninstall timeout (e.g. 5m, 10m)")
 	cmd.Flags().BoolVar(&f.dryRun, "dry-run", false, "Print uninstall plan without executing")
 
